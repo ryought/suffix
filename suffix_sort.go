@@ -41,10 +41,8 @@ func doubling(SA []int, ISA []int, left int, right int, h int) {
 
 }
 
-// SAをISA  SA[l:r)をソートする
+// _partition parts SA[l:r) into [l:i) [i:j) [j:r) by elem's size
 func _partition(SA []int, ISA []int, l int, r int, h int) (i, j int) {
-	fmt.Println("called", l, i, j, r)
-
 	pivot := SA[r-1] // 右をピボットに取る
 	mi, mj := l, r-1 // pivotと同じものゾーンの左 最初は [0:0)と[r-1:r)がpivotゾーン
 	i, j = l, r-1    // pivotより小ゾーン[l:i), [j:r) の範囲にする
@@ -71,7 +69,6 @@ func _partition(SA []int, ISA []int, l int, r int, h int) (i, j int) {
 		i++
 		j--
 	}
-	fmt.Println(l, mi, i, j, mj, r)
 	// pivotと同じ奴を元に戻す
 	for l < mi {
 		SA[i-1], SA[mi-1] = SA[mi-1], SA[i-1]
@@ -83,16 +80,16 @@ func _partition(SA []int, ISA []int, l int, r int, h int) (i, j int) {
 		mj++
 		j++
 	}
-	fmt.Println(l, mi, i, j, mj, r)
 	return
 }
 
+// SAをISA  SA[l:r)をソートする関数
 func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	if l < r-1 {
 		i, j := _partition(SA, ISA, l, r, h)
-		_split_sort(SA, ISA, l, i, h)
-		// l+i, l+j-1 は同じものが並んでる
-		_split_sort(SA, ISA, j, r, h)
+		_split_sort(SA, ISA, l, i, h) // 次はSA[l:i)
+		// [i:j) は同じものが並んでる
+		_split_sort(SA, ISA, j, r, h) // 次はSA[j:r]
 	}
 }
 
