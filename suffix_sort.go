@@ -47,15 +47,16 @@ func _partition(SA []int, ISA []int, l int, r int, h int) (i, j int) {
 	mi, mj := l, r-1 // pivotと同じものゾーンの左 最初は [0:0)と[r-1:r)がpivotゾーン
 	i, j = l, r-1    // pivotより小ゾーン[l:i), [j:r) の範囲にする
 	for {
-		for ; i < j && SA[i] <= pivot; i++ { // iゾーン
-			if SA[i] == pivot {
+		for ; i < j && ISA[SA[i]+h] <= pivot; i++ { // iゾーン
+			if ISA[SA[i]+h] == pivot {
 				// 端っこに寄せる
 				SA[mi], SA[i] = SA[i], SA[mi]
 				mi++
 			}
 		}
-		for ; i < j && pivot <= SA[j-1]; j-- { // jゾーンを増やす 違うとこで止める
-			if SA[j-1] == pivot {
+		for ; i < j && pivot <= ISA[SA[j-1]+h]; j-- {
+			// jゾーンを増やす 違うとこで止める
+			if ISA[SA[j-1]+h] == pivot {
 				// 端っこに寄せる
 				SA[mj-1], SA[j-1] = SA[j-1], SA[mj-1]
 				mj--
@@ -83,12 +84,12 @@ func _partition(SA []int, ISA []int, l int, r int, h int) (i, j int) {
 	return
 }
 
-// SAをISA  SA[l:r)をソートする関数
+// _split_sortは SA[l:r)を ISA[SA[i]+h] の大小によってソートする関数
 func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	if l < r-1 {
 		i, j := _partition(SA, ISA, l, r, h)
 		_split_sort(SA, ISA, l, i, h) // 次はSA[l:i)
-		// [i:j) は同じものが並んでる
+		// [i:j) は同じものが並んでる 順位確定してるのでISA更新
 		_split_sort(SA, ISA, j, r, h) // 次はSA[j:r]
 	}
 }
