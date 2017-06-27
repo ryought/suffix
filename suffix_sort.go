@@ -263,40 +263,57 @@ func LMSsubstring(S []int, t []int, b []int) {
 
 }
 
-func LMSsorted(S []int, t []int, B []int) (SA []int) {
-	SA = make([]int, len(S), len(S))
+func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
+  SA := make([]int, len(S), len(S))
+	SA2 = make([]int, len(S), len(S))
 	// とりあえずLMSだけぶち込んでソートしてみる
 	// LMSを分類する tLMSは、iがLMSの時(=iがsで、i-1がlのもの)、1になる
 	tLMS := make([]int, len(t), len(t))
+	nLMS := 0 //LMSの数
 	for i := 1; i < len(S); i++ {
 		if t[i] == 0 && t[i-1] == 1 {
 			tLMS[i] = 1
+			nLMS++
 		}
 	}
 	fmt.Println("(tLMS)", tLMS)
 	// よくわからないけど順番が付いてしまった
-  // LMSだけを適当に並べたSAについてinduceしてみる
-  // (a)順番は関係なくLMSだけを並べる
+	// LMSだけを適当に並べたSAについてinduceしてみる
+	// (a)順番は関係なくLMSだけを並べる
 	b := make([]int, len(B)-1, len(B)-1)
 	for i := 0; i < len(B)-1; i++ {
 		b[i] = B[i+1] - 1
 	}
-  fmt.Println(b)
+  b2:=make([]int, len(B)-1, len(B)-1)
+  copy(b2, b)
+	fmt.Println(b)
+	for i := 0; i < len(S); i++ {
+		if tLMS[i] == 1 {
+			// LMSは、SAに登録する
+			SA[b[S[i]]] = i
+			b[S[i]]--
+		}
+	}
+  fmt.Println("(b2)", b2)
+	// (b)induceする
+	induceL(S, SA, B, t)
+	induceR(S, SA, B, t)
+	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
+	fmt.Println("(SA)", SA)
   for i:=0; i<len(S); i++ {
-    if tLMS[i] == 1 {
-      // LMSは、SAに登録する
-      SA[ b[ S[i] ] ] = i
-      b[S[i]]--
-    }
+    SA2[i] = -1
   }
-  // (b)induceする
-  induceL(S, SA, B, t)
-  induceR(S, SA, B, t)
-  // (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
-  fmt.Println("(SA)", SA)
-
-
-	SA = []int{15, -1, -1, -1, -1, -1, 10, 2, 5, 8, -1, -1, -1, -1, -1, -1}
+	for i := len(S)-1; i >= 0; i-- {
+		if tLMS[SA[i]] == 1 { // SA[i]がLMSの時
+			// 大きさが大事
+      x := SA[i]
+      SA2[b2[S[x]]] = SA[i]
+      b2[S[x]]--
+		}
+	}
+  fmt.Println("(SA2)", SA2)
+	//SA = []int{15, -1, -1, -1, -1, -1, 10, 2, 5, 8, -1, -1, -1, -1, -1, -1}
+  //fmt.Println("(ref)", SA)
 	return
 }
 
