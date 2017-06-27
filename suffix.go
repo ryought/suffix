@@ -16,13 +16,41 @@ func insertionSort(A []int, left int, right int) {
 	}
 }
 
-func sorth(SA []int, h int) {
+func _sort(S []int) (SA []int) {
+	N := len(S)
+	SA = make([]int, N, N)
+	// 各文字の出現回数を記録する表
+	count := [5]int{0, 0, 0, 0, 0}
+	// 各桁の各文字の出現回数
+	for i := 0; i < N; i++ {
+		count[S[i]]++
+	}
+	fmt.Println(count)
+	// 累積する
+	for k := 1; k < 5; k++ {
+		count[k] = count[k-1] + count[k]
+	}
+	//この時点でcountは、各文字の終了位置を示している。
+	//それに従って埋めていく
+	for i := N - 1; i >= 0; i-- { // 逆側から
+		count[S[i]]-- // デクリメントしてから使う
+		SA[count[S[i]]] = i
+	}
+	fmt.Println(SA)
+	fmt.Println(count)
+	return
+}
+
+// doublingして伸ばしていく
+func doubling(SA []int, ISA []int) {
+	h := 1
 
 }
 
 func suffixArrayLS(A []int, N int) (SA []int) {
-	SA = make([]int, N, N)  // suffix array
-	ISA = make([]int, N, N) // inversed SA
+	SA = make([]int, N, N)   // suffix array
+	ISA := make([]int, N, N) // inversed SA
+	//SA1 := _sort()
 
 	for h := 1; h < 100; h *= 2 {
 		// 各桁数 radix sort してから、各区間ごとくっつけて次に行く
@@ -38,6 +66,7 @@ func inverse(SA []int) (ISA []int) {
 	for i := 0; i < len(SA); i++ {
 		break
 	}
+	return
 }
 
 /**
@@ -80,6 +109,7 @@ func _sort_and_ref(SA []int, ISA []int, S []int, left int, right int, h int) {
 	}
 }
 
+// 線形時間SA構築アルゴリズム
 func suffixArrayIS(S []int, N int) (SA []int) {
 	// step0: Ltype(1) Stype(0)を格納する o(n)
 	t := make([]int, N, N)
@@ -138,6 +168,7 @@ func main() {
 
 	fmt.Println(S)
 	//insertionSort(A, 0, N-1)
-	SA := suffixArrayIS(S, N)
+	//SA := suffixArrayIS(S, N)
+	SA := _sort(S)
 	fmt.Println(SA)
 }
