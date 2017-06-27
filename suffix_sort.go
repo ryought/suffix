@@ -264,7 +264,7 @@ func LMSsubstring(S []int, t []int, b []int) {
 }
 
 func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
-  SA := make([]int, len(S), len(S))
+	SA := make([]int, len(S), len(S))
 	SA2 = make([]int, len(S), len(S))
 	// とりあえずLMSだけぶち込んでソートしてみる
 	// LMSを分類する tLMSは、iがLMSの時(=iがsで、i-1がlのもの)、1になる
@@ -284,8 +284,8 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	for i := 0; i < len(B)-1; i++ {
 		b[i] = B[i+1] - 1
 	}
-  b2:=make([]int, len(B)-1, len(B)-1)
-  copy(b2, b)
+	b2 := make([]int, len(B)-1, len(B)-1)
+	copy(b2, b)
 	fmt.Println(b)
 	for i := 0; i < len(S); i++ {
 		if tLMS[i] == 1 {
@@ -294,34 +294,33 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			b[S[i]]--
 		}
 	}
-  fmt.Println("(b2)", b2)
+	fmt.Println("(b2)", b2)
 	// (b)induceする
 	induceL(S, SA, B, t)
 	induceR(S, SA, B, t)
 	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
 	fmt.Println("(SA)", SA)
-  for i:=0; i<len(S); i++ {
-    SA2[i] = -1
-  }
-	for i := len(S)-1; i >= 0; i-- {
+	for i := 0; i < len(S); i++ {
+		SA2[i] = -1
+	}
+	for i := len(S) - 1; i >= 0; i-- {
 		if tLMS[SA[i]] == 1 { // SA[i]がLMSの時
 			// 大きさが大事
-      x := SA[i]
-      SA2[b2[S[x]]] = SA[i]
-      b2[S[x]]--
+			x := SA[i]
+			SA2[b2[S[x]]] = SA[i]
+			b2[S[x]]--
 		}
 	}
-  fmt.Println("(SA2)", SA2)
+	fmt.Println("(SA2)", SA2)
 	//SA = []int{15, -1, -1, -1, -1, -1, 10, 2, 5, 8, -1, -1, -1, -1, -1, -1}
-  //fmt.Println("(ref)", SA)
+	//fmt.Println("(ref)", SA)
 	return
 }
 
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	//S := make([]int, N, N)
 	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
-	//S := []int{10, 500, 20, 10, 50, 40, 50, 20, 40, 30, 100, 200, 50}
+	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
 
