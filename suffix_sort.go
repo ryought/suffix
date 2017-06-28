@@ -335,14 +335,14 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 		}
 	}
 	// LMS間は等号にする
-	for k := 0; k < len(b2); k++ {
-		if b2[k]-b[k] > 1 {
-			for b2[k]-b[k] > 1 {
-				rl[b2[k]] = 1 // 等号を入れる
-				b2[k]--
-			}
-		}
-	}
+	//for k := 0; k < len(b2); k++ {
+	//	if b2[k]-b[k] > 1 {
+	//		for b2[k]-b[k] > 1 {
+	//			rl[b2[k]] = 1 // 等号を入れる
+	//			b2[k]--
+	//		}
+	//	}
+	//}
 
 	dispSA(SA, rl)
 	fmt.Println("(b2)", b2)
@@ -353,47 +353,84 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
 	fmt.Println("(SA)", SA)
 	// 順序けっていしているかどうか
-	l := 0
+	l := 1
 	prev := 0
-	for i := 0; i < len(SA); i++ {
-		if tLMS[SA[i]] == 1 { // LMSで
+	reccursion := 0
+	for i := 1; i < len(SA); i++ {
+		if tLMS[SA[i]] >= 1 { // LMSで
 			//if eqLMS(SA, SA[i], prev) == 1 { // 大小が確定している
-		//		l++
+			//		l++
 			//}
-      fmt.Println(l, prev)
-      fmt.Println("(info)", i, SA[i])
-      // prevと順序がついてるかどうかを調べる
-      // SA[prev]とSA[i]の比較
-      fmt.Println("(prev)", prev, i)
-      c := 0
-      for {
-        if SA[prev+c] != SA[i+c] {
+			//fmt.Println("(info)", i, SA[i])
+			// prevと順序がついてるかどうかを調べる
+			// SA[prev]とSA[i]の比較
+			fmt.Println("(compare)", SA[prev], SA[i])
+			c := 0
+			for {
+				if S[SA[prev]+c] != S[SA[i]+c] {
+					fmt.Println("different!", c)
+					l++
+					break
+				}
+				if c != 0 && tLMS[SA[prev]+c] >= 1 && tLMS[SA[i]+c] >= 1 {
+          // 同時に終了したら、同じ文字列
+					reccursion++
+					break
+				}
+        if c != 0 && (tLMS[SA[prev]+c] >= 1 || tLMS[SA[i]+c] >= 1) {
+          // 片方だけだったら、違う文字列だけどそこで探索終了
+          fmt.Println("different!", c)
+          l++
           break
         }
-        if tLMS[SA[prev+c]] == 1 || tLMS[SA[i+c]] == 1 {
-          break
-        }
-        c++
-      }
-      prev = i
+				if prev+c >= len(SA)-1 || i+c >= len(SA)-1 {
+					break
+				}
+				c++
+			}
+			tLMS[SA[i]] = l
+			prev = i
 		}
 	}
+	fmt.Println(tLMS, reccursion)
 	for i := 0; i < len(S); i++ {
 		SA2[i] = -1
 	}
-	// 詰める作業
-  fmt.Println(b2)
-	for i := len(S) - 1; i >= 0; i-- {
-		if tLMS[SA[i]] == 1 { // SA[i]がLMSの時
-			// 大きさが大事
-			x := SA[i]
-			SA2[b2[S[x]]] = SA[i]
-			b2[S[x]]--
-		}
-	}
-	fmt.Println("(SA2)", SA2)
-	//SA = []int{15, -1, -1, -1, -1, -1, 10, 2, 5, 8, -1, -1, -1, -1, -1, -1}
-	//fmt.Println("(ref)", SA)
+  if reccursion > 0 {
+    fmt.Println("再帰呼び出しをします")
+    // 再帰したい 新しい文字列つくる
+    // 文字列の長さ
+    length := 0 // LMSの長さ収録文字列の長さ
+    for i := 0; i < len(tLMS); i++ {
+      // 全長の計算
+      if tLMS[i] >= 1 {
+        length++
+      }
+    }
+    fmt.Println(length)
+    newS := make([]int, length+1, length+1)
+    j := 0
+    for i:=0; i<len(tLMS); i++ {
+      if tLMS[i] >= 1 {
+        newS[j] = tLMS[i]
+        j++
+      }
+    }
+    newS[j] = 0 //末尾に0($)を付加
+    fmt.Println(newS)
+  } else {
+    // 再帰しなくていいから、詰めてそのまま返す
+    // 詰める作業
+    fmt.Println(b2)
+    for i := len(S) - 1; i >= 0; i-- {
+      if tLMS[SA[i]] >= 1 { // SA[i]がLMSの時
+        x := SA[i]
+        SA2[b2[S[x]]] = SA[i]
+        b2[S[x]]--
+      }
+    }
+    fmt.Println("(SA2 seed)", SA2)
+  }
 	return
 }
 func dispSA(SA []int, rl []int) {
@@ -413,7 +450,7 @@ func dispSA(SA []int, rl []int) {
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
 	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
-  fmt.Println(a, c, g, t, n)
+	fmt.Println(a, c, g, t, n)
 	S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
 	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
