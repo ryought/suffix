@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-  "math/rand"
-  "time"
+	"math/rand"
+	"time"
 )
 
 // suffix同士の大小比較  s[x,:) > s[y,;)だったら1、そうでなければ-1を返す
@@ -216,11 +216,11 @@ func typeLS(S []int) (t []int) {
 	t = make([]int, N, N)
 	t[N-1] = 0 // $はstypeとする
 	for i := N - 2; 0 <= i; i-- {
-    // となりが同じ文字だったら、その隣のtypeを引き継ぐ
+		// となりが同じ文字だったら、その隣のtypeを引き継ぐ
 		if S[i] == S[i+1] {
 			t[i] = t[i+1]
 		} else {
-      // 文字が違ったら、その大小で決まる
+			// 文字が違ったら、その大小で決まる
 			if S[i] < S[i+1] {
 				t[i] = 0
 			} else {
@@ -244,14 +244,14 @@ func suffix_array_IS(S []int) (SA []int) {
 	// (0) Ltype Stypeの分類をする
 	t := typeLS(S)
 	// (1) バケットを作る
-  // Sの中の最大値maxを探して、max+1を文字の種類数とする
+	// Sの中の最大値maxを探して、max+1を文字の種類数とする
 	max := S[0]
 	for i := 1; i < len(S); i++ {
 		if max < S[i] {
 			max = S[i]
 		}
 	}
-  // バケットbは、バケットの境界の位置を保存した配列
+	// バケットbは、バケットの境界の位置を保存した配列
 	b := countArray(S, max+1)
 	// (2) ソート済み配列を用意
 	SA = LMSsorted(S, t, b)
@@ -438,13 +438,13 @@ func main() {
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
 
-  N := 100000
-  S := make([]int, N, N)
+	N := 100000
+	S := make([]int, N, N)
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < N-1; i++ {
-		S[i] = rand.Intn(4)+1 // 配列を作る
+		S[i] = rand.Intn(4) + 1 // 配列を作る
 	}
-  S[N-1] = 0 // 終端文字
+	S[N-1] = 0 // 終端文字
 
 	fmt.Println("(input)")
 	//insertionSort(A, 0, N-1)
@@ -463,9 +463,9 @@ func main() {
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
-  start := time.Now()
+	start := time.Now()
 	SA := suffix_array_IS(S)
-  end := time.Now()
+	end := time.Now()
 	fmt.Println("SA", len(SA))
-  fmt.Println(end.Sub(start).Nanoseconds())
+	fmt.Println(end.Sub(start).Nanoseconds())
 }
