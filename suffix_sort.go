@@ -149,7 +149,8 @@ func suffix_array_LS(S []int) []int {
 	return SA
 }
 
-func induceL(S []int, SA []int, B []int, t []int) {
+func induceL(S []int, SA []int, B []int, t []int, rl []int) {
+	dispSA(SA, rl)
 	// Step2 SAを左側から走査して、Ltypeの順位を、一つ左側を根拠に誘導する
 	// ^テーブルbを作る
 	b := make([]int, len(B)-1, len(B)-1)
@@ -157,18 +158,37 @@ func induceL(S []int, SA []int, B []int, t []int) {
 		b[i] = B[i]
 	}
 	// SAを左から(0~)走査
+	// もし間に不等号が一つでもあれば、次の関係は不等号になる
 	for i := 0; i < len(SA); i++ {
 		// もしすでに書き込まれていて、それの一個長いものがLtype(=1)だったら
 		if SA[i] > 0 && t[SA[i]-1] == 1 {
 			// 次の位置に書き込んでインクリメント
-			x := SA[i] - 1
+			//fmt.Println("inducing from", SA[i])
+			//from := SA[i]
+			x := SA[i] - 1 // SA[i]の大小関係を元に、SA[i]-1の順位を確定する
 			SA[b[S[x]]] = x
+			// rl[x] に関係を書き込む
+			if rl[i] == 1 { //等号だったら,induce先も等号にする可能性がある。不等号だったら絶対いらない
+				if i > 0 && b[S[x]] > 0 {
+					//fmt.Println("induce from", SA[i], "to", SA[b[S[x]]])
+					//fmt.Println("base neighbor", SA[i-1], "to neightbor", SA[b[S[x]]-1])
+					//mt.Println(SA[b[S[x]]-1], SA[i-1]) // 一個前が、induce前にも一個前だった
+				}
+				rl[b[S[x]]] = 1
+				dispSA(SA, rl)
+			}
 			b[S[x]]++
+			// relation tableの更新作業
+			//fmt.Println("hoge", rl[i], b[S[x]], SA, rl)
+			//if rl[i] == 2 && i > 1 && b[S[x]]-2 == SA[i-1]-1 { // 左側が等号で、一個前がすぐ隣のやつ
+			// }
+			// rl[x]
 		}
 	}
 }
 
-func induceR(S []int, SA []int, B []int, t []int) {
+func induceR(S []int, SA []int, B []int, t []int, rl []int) {
+	dispSA(SA, rl)
 	// Step3 SAを右側から走査
 	// ^テーブルbの準備
 	b := make([]int, len(B)-1, len(B)-1)
@@ -180,7 +200,7 @@ func induceR(S []int, SA []int, B []int, t []int) {
 	for i := len(SA) - 1; i > 0; i-- {
 		// すでに数字があって、それの一個長いものがStype(=0)だったら、
 		if SA[i] > 0 && t[SA[i]-1] == 0 {
-			x := SA[i] - 1
+			x := SA[i] - 1 // 推論した先の要素の添え字
 			SA[b[S[x]]] = x
 			b[S[x]]--
 		}
@@ -227,6 +247,14 @@ func typeLS(S []int) (t []int) {
 	return
 }
 
+// BWTのベクトルを取得
+func getBWT(SA []int, base int) (BWT []int) {
+	Occ := make([]int, base, base)
+	C := make([]int, base, base)
+	fmt.Println(Occ, C)
+	return
+}
+
 func suffix_array_IS(S []int) (SA []int) {
 	N := len(S)
 
@@ -266,6 +294,10 @@ func LMSsubstring(S []int, t []int, b []int) {
 func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	SA := make([]int, len(S), len(S))
 	SA2 = make([]int, len(S), len(S))
+	for i := 0; i < len(S); i++ {
+		SA[i] = -1
+		SA2[i] = -1
+	}
 	// とりあえずLMSだけぶち込んでソートしてみる
 	// LMSを分類する tLMSは、iがLMSの時(=iがsで、i-1がlのもの)、1になる
 	tLMS := make([]int, len(t), len(t))
@@ -287,6 +319,14 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	b2 := make([]int, len(B)-1, len(B)-1)
 	copy(b2, b)
 	fmt.Println(b)
+
+	// (b-0)relation tableを作る
+	//   バケットの間には不等号を挟んでおく
+	rl := make([]int, len(S)+1, len(S)+1)
+	//for k := 1; k < len(B)-1; k++ {
+	//		rl[B[k]] = 1 // 不等号は1
+	//}
+	// LMSの登録
 	for i := 0; i < len(S); i++ {
 		if tLMS[i] == 1 {
 			// LMSは、SAに登録する
@@ -294,15 +334,55 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			b[S[i]]--
 		}
 	}
+	// LMS間は等号にする
+	for k := 0; k < len(b2); k++ {
+		if b2[k]-b[k] > 1 {
+			for b2[k]-b[k] > 1 {
+				rl[b2[k]] = 1 // 等号を入れる
+				b2[k]--
+			}
+		}
+	}
+
+	dispSA(SA, rl)
 	fmt.Println("(b2)", b2)
 	// (b)induceする
-	induceL(S, SA, B, t)
-	induceR(S, SA, B, t)
+	// (b-1)実際にinduceする
+	induceL(S, SA, B, t, rl)
+	induceR(S, SA, B, t, rl)
 	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
 	fmt.Println("(SA)", SA)
+	// 順序けっていしているかどうか
+	l := 0
+	prev := 0
+	for i := 0; i < len(SA); i++ {
+		if tLMS[SA[i]] == 1 { // LMSで
+			//if eqLMS(SA, SA[i], prev) == 1 { // 大小が確定している
+		//		l++
+			//}
+      fmt.Println(l, prev)
+      fmt.Println("(info)", i, SA[i])
+      // prevと順序がついてるかどうかを調べる
+      // SA[prev]とSA[i]の比較
+      fmt.Println("(prev)", prev, i)
+      c := 0
+      for {
+        if SA[prev+c] != SA[i+c] {
+          break
+        }
+        if tLMS[SA[prev+c]] == 1 || tLMS[SA[i+c]] == 1 {
+          break
+        }
+        c++
+      }
+      prev = i
+		}
+	}
 	for i := 0; i < len(S); i++ {
 		SA2[i] = -1
 	}
+	// 詰める作業
+  fmt.Println(b2)
 	for i := len(S) - 1; i >= 0; i-- {
 		if tLMS[SA[i]] == 1 { // SA[i]がLMSの時
 			// 大きさが大事
@@ -316,10 +396,25 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	//fmt.Println("(ref)", SA)
 	return
 }
-
+func dispSA(SA []int, rl []int) {
+	fmt.Print(SA[0])
+	for i := 1; i < len(SA); i++ {
+		if len(rl) > 0 && rl[i] == 1 {
+			// 等号
+			fmt.Print("=")
+		} else {
+			// 不等号
+			fmt.Print("<")
+		}
+		fmt.Print(SA[i])
+	}
+	fmt.Print("\n")
+}
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+  fmt.Println(a, c, g, t, n)
+	S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
 	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
@@ -352,9 +447,10 @@ func main() {
 	//SA := LMSsubstring(S, ty, b)
 	SA := LMSsorted(S, ty, b)
 	fmt.Println(SA)
-	induceL(S, SA, b, ty)
+	rl := make([]int, len(S), len(S))
+	induceL(S, SA, b, ty, rl)
 	fmt.Println("(induceL)", SA)
-	induceR(S, SA, b, ty)
+	induceR(S, SA, b, ty, rl)
 	fmt.Println("(induceR)", SA)
 	fmt.Println("(finished)")
 }
