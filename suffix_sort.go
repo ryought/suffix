@@ -149,8 +149,7 @@ func suffix_array_LS(S []int) []int {
 	return SA
 }
 
-func induceL(S []int, SA []int, B []int, t []int, rl []int) {
-	dispSA(SA, rl)
+func induceL(S []int, SA []int, B []int, t []int) {
 	// Step2 SAを左側から走査して、Ltypeの順位を、一つ左側を根拠に誘導する
 	// ^テーブルbを作る
 	b := make([]int, len(B)-1, len(B)-1)
@@ -163,32 +162,14 @@ func induceL(S []int, SA []int, B []int, t []int, rl []int) {
 		// もしすでに書き込まれていて、それの一個長いものがLtype(=1)だったら
 		if SA[i] > 0 && t[SA[i]-1] == 1 {
 			// 次の位置に書き込んでインクリメント
-			//fmt.Println("inducing from", SA[i])
-			//from := SA[i]
 			x := SA[i] - 1 // SA[i]の大小関係を元に、SA[i]-1の順位を確定する
 			SA[b[S[x]]] = x
-			// rl[x] に関係を書き込む
-			if rl[i] == 1 { //等号だったら,induce先も等号にする可能性がある。不等号だったら絶対いらない
-				if i > 0 && b[S[x]] > 0 {
-					//fmt.Println("induce from", SA[i], "to", SA[b[S[x]]])
-					//fmt.Println("base neighbor", SA[i-1], "to neightbor", SA[b[S[x]]-1])
-					//mt.Println(SA[b[S[x]]-1], SA[i-1]) // 一個前が、induce前にも一個前だった
-				}
-				rl[b[S[x]]] = 1
-				dispSA(SA, rl)
-			}
 			b[S[x]]++
-			// relation tableの更新作業
-			//fmt.Println("hoge", rl[i], b[S[x]], SA, rl)
-			//if rl[i] == 2 && i > 1 && b[S[x]]-2 == SA[i-1]-1 { // 左側が等号で、一個前がすぐ隣のやつ
-			// }
-			// rl[x]
 		}
 	}
 }
 
-func induceR(S []int, SA []int, B []int, t []int, rl []int) {
-	dispSA(SA, rl)
+func induceR(S []int, SA []int, B []int, t []int) {
 	// Step3 SAを右側から走査
 	// ^テーブルbの準備
 	b := make([]int, len(B)-1, len(B)-1)
@@ -255,7 +236,31 @@ func getBWT(SA []int, base int) (BWT []int) {
 	return
 }
 
+// 線形時間SA構築アルゴリズム
 func suffix_array_IS(S []int) (SA []int) {
+  // (0) Ltype Stypeの分類をする
+  t := typeLS(S)
+  // (1) バケットを作る
+  max := S[0]
+  for i:=1; i<len(S); i++ {
+    if max < S[i] {
+      max = S[i]
+    }
+  }
+  fmt.Println("(max)",max)
+  b := countArray(S, max+1)
+  // (2) ソート済み配列を用意
+  SA = LMSsorted(S, t, b)
+  fmt.Println(SA)
+  // (3-1) 左からinduce
+  induceL(S, SA, b, t)
+  // (3-2) 右からinduce
+  induceR(S, SA, b, t)
+  fmt.Println("(finished)", SA)
+  return
+}
+
+func suffix_array_IS_old(S []int) (SA []int) {
 	N := len(S)
 
 	// バケットを作る
@@ -287,9 +292,6 @@ func suffix_array_IS(S []int) (SA []int) {
 	return
 }
 
-func LMSsubstring(S []int, t []int, b []int) {
-
-}
 
 func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	SA := make([]int, len(S), len(S))
@@ -320,12 +322,6 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	copy(b2, b)
 	fmt.Println(b)
 
-	// (b-0)relation tableを作る
-	//   バケットの間には不等号を挟んでおく
-	rl := make([]int, len(S)+1, len(S)+1)
-	//for k := 1; k < len(B)-1; k++ {
-	//		rl[B[k]] = 1 // 不等号は1
-	//}
 	// LMSの登録
 	for i := 0; i < len(S); i++ {
 		if tLMS[i] == 1 {
@@ -334,22 +330,11 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			b[S[i]]--
 		}
 	}
-	// LMS間は等号にする
-	//for k := 0; k < len(b2); k++ {
-	//	if b2[k]-b[k] > 1 {
-	//		for b2[k]-b[k] > 1 {
-	//			rl[b2[k]] = 1 // 等号を入れる
-	//			b2[k]--
-	//		}
-	//	}
-	//}
-
-	dispSA(SA, rl)
 	fmt.Println("(b2)", b2)
 	// (b)induceする
 	// (b-1)実際にinduceする
-	induceL(S, SA, B, t, rl)
-	induceR(S, SA, B, t, rl)
+	induceL(S, SA, B, t)
+	induceR(S, SA, B, t)
 	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
 	fmt.Println("(SA)", SA)
 	// 順序けっていしているかどうか
@@ -358,10 +343,6 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	reccursion := 0
 	for i := 1; i < len(SA); i++ {
 		if tLMS[SA[i]] >= 1 { // LMSで
-			//if eqLMS(SA, SA[i], prev) == 1 { // 大小が確定している
-			//		l++
-			//}
-			//fmt.Println("(info)", i, SA[i])
 			// prevと順序がついてるかどうかを調べる
 			// SA[prev]とSA[i]の比較
 			fmt.Println("(compare)", SA[prev], SA[i])
@@ -408,16 +389,28 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
       }
     }
     fmt.Println(length)
-    newS := make([]int, length+1, length+1)
+    newS := make([]int, length+1, length+1) //再帰するべき新しい文字列
+    Ss := make([]int, length+1, length+1) //再帰から戻ってきた時に、元の順序を復元するためのメモ
     j := 0
     for i:=0; i<len(tLMS); i++ {
       if tLMS[i] >= 1 {
         newS[j] = tLMS[i]
+        Ss[j] = i
         j++
       }
     }
     newS[j] = 0 //末尾に0($)を付加
-    fmt.Println(newS)
+    fmt.Println(newS, Ss)
+    newSA := suffix_array_IS(newS)
+    fmt.Println("(reccued)", newSA)
+    // 元の順位を復元 newSAを走査して、順番につめる
+    for i:=1; i<len(newSA); i++ {
+      fmt.Println("(hoho)", i, newSA[i], Ss[newSA[i]])
+      x := Ss[newSA[i]]
+      SA2[b2[S[x]]] = x
+      b2[S[x]]--
+    }
+    // SA2に詰めて返却
   } else {
     // 再帰しなくていいから、詰めてそのまま返す
     // 詰める作業
@@ -449,9 +442,10 @@ func dispSA(SA []int, rl []int) {
 }
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	fmt.Println(a, c, g, t, n)
-	S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
+	//S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
+  //S := []int{2,2,3,1,0}
 	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
@@ -478,16 +472,8 @@ func main() {
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
-	ty := typeLS(S)
-	b := countArray(S, 5)
-	fmt.Println(ty, b)
-	//SA := LMSsubstring(S, ty, b)
-	SA := LMSsorted(S, ty, b)
-	fmt.Println(SA)
-	rl := make([]int, len(S), len(S))
-	induceL(S, SA, b, ty, rl)
-	fmt.Println("(induceL)", SA)
-	induceR(S, SA, b, ty, rl)
-	fmt.Println("(induceR)", SA)
-	fmt.Println("(finished)")
+  SA := suffix_array_IS(S)
+  fmt.Println("SA", SA)
 }
+
+
