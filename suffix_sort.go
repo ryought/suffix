@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+  "math/rand"
+  "time"
 )
 
 // suffix同士の大小比較  s[x,:) > s[y,;)だったら1、そうでなければ-1を返す
@@ -209,14 +211,16 @@ func countArray(S []int, base int) []int {
 }
 
 func typeLS(S []int) (t []int) {
-	// S/L/SMLの分類 S=0, T=0
+	// S/L/SMLの分類をする S=0, T=0
 	N := len(S)
 	t = make([]int, N, N)
-	t[N-1] = 0
+	t[N-1] = 0 // $はstypeとする
 	for i := N - 2; 0 <= i; i-- {
+    // となりが同じ文字だったら、その隣のtypeを引き継ぐ
 		if S[i] == S[i+1] {
 			t[i] = t[i+1]
 		} else {
+      // 文字が違ったら、その大小で決まる
 			if S[i] < S[i+1] {
 				t[i] = 0
 			} else {
@@ -224,7 +228,6 @@ func typeLS(S []int) (t []int) {
 			}
 		}
 	}
-	fmt.Println(t)
 	return
 }
 
@@ -238,26 +241,25 @@ func getBWT(SA []int, base int) (BWT []int) {
 
 // 線形時間SA構築アルゴリズム
 func suffix_array_IS(S []int) (SA []int) {
-  // (0) Ltype Stypeの分類をする
-  t := typeLS(S)
-  // (1) バケットを作る
-  max := S[0]
-  for i:=1; i<len(S); i++ {
-    if max < S[i] {
-      max = S[i]
-    }
-  }
-  fmt.Println("(max)",max)
-  b := countArray(S, max+1)
-  // (2) ソート済み配列を用意
-  SA = LMSsorted(S, t, b)
-  fmt.Println(SA)
-  // (3-1) 左からinduce
-  induceL(S, SA, b, t)
-  // (3-2) 右からinduce
-  induceR(S, SA, b, t)
-  fmt.Println("(finished)", SA)
-  return
+	// (0) Ltype Stypeの分類をする
+	t := typeLS(S)
+	// (1) バケットを作る
+  // Sの中の最大値maxを探して、max+1を文字の種類数とする
+	max := S[0]
+	for i := 1; i < len(S); i++ {
+		if max < S[i] {
+			max = S[i]
+		}
+	}
+  // バケットbは、バケットの境界の位置を保存した配列
+	b := countArray(S, max+1)
+	// (2) ソート済み配列を用意
+	SA = LMSsorted(S, t, b)
+	// (3-1) 左からinduce
+	induceL(S, SA, b, t)
+	// (3-2) 右からinduce
+	induceR(S, SA, b, t)
+	return
 }
 
 func suffix_array_IS_old(S []int) (SA []int) {
@@ -292,7 +294,6 @@ func suffix_array_IS_old(S []int) (SA []int) {
 	return
 }
 
-
 func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	SA := make([]int, len(S), len(S))
 	SA2 = make([]int, len(S), len(S))
@@ -310,7 +311,6 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			nLMS++
 		}
 	}
-	fmt.Println("(tLMS)", tLMS)
 	// よくわからないけど順番が付いてしまった
 	// LMSだけを適当に並べたSAについてinduceしてみる
 	// (a)順番は関係なくLMSだけを並べる
@@ -320,7 +320,6 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	}
 	b2 := make([]int, len(B)-1, len(B)-1)
 	copy(b2, b)
-	fmt.Println(b)
 
 	// LMSの登録
 	for i := 0; i < len(S); i++ {
@@ -330,13 +329,11 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			b[S[i]]--
 		}
 	}
-	fmt.Println("(b2)", b2)
 	// (b)induceする
 	// (b-1)実際にinduceする
 	induceL(S, SA, B, t)
 	induceR(S, SA, B, t)
 	// (c)LMSについての順序が決定しているか？していなければ再帰呼び出し
-	fmt.Println("(SA)", SA)
 	// 順序けっていしているかどうか
 	l := 1
 	prev := 0
@@ -345,25 +342,22 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 		if tLMS[SA[i]] >= 1 { // LMSで
 			// prevと順序がついてるかどうかを調べる
 			// SA[prev]とSA[i]の比較
-			fmt.Println("(compare)", SA[prev], SA[i])
 			c := 0
 			for {
 				if S[SA[prev]+c] != S[SA[i]+c] {
-					fmt.Println("different!", c)
 					l++
 					break
 				}
 				if c != 0 && tLMS[SA[prev]+c] >= 1 && tLMS[SA[i]+c] >= 1 {
-          // 同時に終了したら、同じ文字列
+					// 同時に終了したら、同じ文字列
 					reccursion++
 					break
 				}
-        if c != 0 && (tLMS[SA[prev]+c] >= 1 || tLMS[SA[i]+c] >= 1) {
-          // 片方だけだったら、違う文字列だけどそこで探索終了
-          fmt.Println("different!", c)
-          l++
-          break
-        }
+				if c != 0 && (tLMS[SA[prev]+c] >= 1 || tLMS[SA[i]+c] >= 1) {
+					// 片方だけだったら、違う文字列だけどそこで探索終了
+					l++
+					break
+				}
 				if prev+c >= len(SA)-1 || i+c >= len(SA)-1 {
 					break
 				}
@@ -373,57 +367,50 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 			prev = i
 		}
 	}
-	fmt.Println(tLMS, reccursion)
 	for i := 0; i < len(S); i++ {
 		SA2[i] = -1
 	}
-  if reccursion > 0 {
-    fmt.Println("再帰呼び出しをします")
-    // 再帰したい 新しい文字列つくる
-    // 文字列の長さ
-    length := 0 // LMSの長さ収録文字列の長さ
-    for i := 0; i < len(tLMS); i++ {
-      // 全長の計算
-      if tLMS[i] >= 1 {
-        length++
-      }
-    }
-    fmt.Println(length)
-    newS := make([]int, length+1, length+1) //再帰するべき新しい文字列
-    Ss := make([]int, length+1, length+1) //再帰から戻ってきた時に、元の順序を復元するためのメモ
-    j := 0
-    for i:=0; i<len(tLMS); i++ {
-      if tLMS[i] >= 1 {
-        newS[j] = tLMS[i]
-        Ss[j] = i
-        j++
-      }
-    }
-    newS[j] = 0 //末尾に0($)を付加
-    fmt.Println(newS, Ss)
-    newSA := suffix_array_IS(newS)
-    fmt.Println("(reccued)", newSA)
-    // 元の順位を復元 newSAを走査して、順番につめる
-    for i:=1; i<len(newSA); i++ {
-      fmt.Println("(hoho)", i, newSA[i], Ss[newSA[i]])
-      x := Ss[newSA[i]]
-      SA2[b2[S[x]]] = x
-      b2[S[x]]--
-    }
-    // SA2に詰めて返却
-  } else {
-    // 再帰しなくていいから、詰めてそのまま返す
-    // 詰める作業
-    fmt.Println(b2)
-    for i := len(S) - 1; i >= 0; i-- {
-      if tLMS[SA[i]] >= 1 { // SA[i]がLMSの時
-        x := SA[i]
-        SA2[b2[S[x]]] = SA[i]
-        b2[S[x]]--
-      }
-    }
-    fmt.Println("(SA2 seed)", SA2)
-  }
+	if reccursion > 0 {
+		fmt.Println("再帰呼び出しをします")
+		// 再帰したい 新しい文字列つくる
+		// 文字列の長さ
+		length := 0 // LMSの長さ収録文字列の長さ
+		for i := 0; i < len(tLMS); i++ {
+			// 全長の計算
+			if tLMS[i] >= 1 {
+				length++
+			}
+		}
+		newS := make([]int, length+1, length+1) //再帰するべき新しい文字列
+		Ss := make([]int, length+1, length+1)   //再帰から戻ってきた時に、元の順序を復元するためのメモ
+		j := 0
+		for i := 0; i < len(tLMS); i++ {
+			if tLMS[i] >= 1 {
+				newS[j] = tLMS[i]
+				Ss[j] = i
+				j++
+			}
+		}
+		newS[j] = 0 //末尾に0($)を付加
+		newSA := suffix_array_IS(newS)
+		// 元の順位を復元 newSAを走査して、順番につめる
+		for i := 1; i < len(newSA); i++ {
+			x := Ss[newSA[i]]
+			SA2[b2[S[x]]] = x
+			b2[S[x]]--
+		}
+		// SA2に詰めて返却
+	} else {
+		// 再帰しなくていいから、詰めてそのまま返す
+		// 詰める作業
+		for i := len(S) - 1; i >= 0; i-- {
+			if tLMS[SA[i]] >= 1 { // SA[i]がLMSの時
+				x := SA[i]
+				SA2[b2[S[x]]] = SA[i]
+				b2[S[x]]--
+			}
+		}
+	}
 	return
 }
 func dispSA(SA []int, rl []int) {
@@ -442,20 +429,24 @@ func dispSA(SA []int, rl []int) {
 }
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	//S := []int{a, t, a, t, c, g, t, a, t, c, g, a, a, t, a, g, c, t, t, t, c, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	fmt.Println(a, c, g, t, n)
 	//S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
-  //S := []int{2,2,3,1,0}
+	//S := []int{2,2,3,1,0}
 	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
 
-	// rand.Seed(time.Now().UnixNano())
-	// for i := 0; i < N; i++ {
-	// 	A[i] = rand.Intn(4) // 配列を作る
-	// }
+  N := 100000
+  S := make([]int, N, N)
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < N-1; i++ {
+		S[i] = rand.Intn(4)+1 // 配列を作る
+	}
+  S[N-1] = 0 // 終端文字
 
-	fmt.Println("(input)", S)
+	fmt.Println("(input)")
 	//insertionSort(A, 0, N-1)
 	//SA := suffixArrayIS(S, N)
 	//SA, ISA, count := _rad_sort(S)
@@ -472,8 +463,9 @@ func main() {
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
-  SA := suffix_array_IS(S)
-  fmt.Println("SA", SA)
+  start := time.Now()
+	SA := suffix_array_IS(S)
+  end := time.Now()
+	fmt.Println("SA", len(SA))
+  fmt.Println(end.Sub(start).Nanoseconds())
 }
-
-
