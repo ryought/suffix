@@ -126,6 +126,7 @@ func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	if l < r-1 {
 		fmt.Println("(called)", l, r, h, SA, ISA)
 		i, j := _partition(SA, ISA, l, r, h)
+    fmt.Println("(part)", i, j)
 		_split_sort(SA, ISA, l, i, 2*h) // 次はSA[l:i)
 		// [i:j) は同じものが並んでる 順位確定してるのでISA更新
 		for x := i; x < j; x++ {
@@ -138,11 +139,12 @@ func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 func suffix_array_LS(S []int) []int {
 	SA, ISA, count := _rad_sort(S)
 
+  fmt.Println("(S)", S, SA,  count)
 	for i := 0; i < len(ISA); i++ {
 		fmt.Println(ISA[SA[i]], " ")
 	}
 
-	fmt.Println(SA, ISA, count)
+	fmt.Println("(first rad finished)", SA, ISA, count)
 
 	for i := 0; i < 4; i++ {
 		_split_sort(SA, ISA, count[i], count[i+1], 1)
@@ -231,13 +233,91 @@ func typeLS(S []int) (t []int) {
 	return
 }
 
-// BWTのベクトルを取得
-func getBWT(SA []int, base int) (BWT []int) {
-	Occ := make([]int, base, base)
-	C := make([]int, base, base)
-	fmt.Println(Occ, C)
+// SAからISAを取得
+func getISA(SA []int) (ISA []int) {
+	ISA = make([]int, len(SA), len(SA))
+	for i := 0; i < len(SA); i++ {
+		ISA[SA[i]] = i
+	}
 	return
 }
+
+// DONE BWTを取得
+func getBWT(SA []int, S []int) (BWT []int) {
+	BWT = make([]int, len(SA), len(SA))
+	for i := 0; i < len(SA); i++ {
+		if SA[i] == 0 {
+			BWT[i] = S[len(SA)-1]
+		} else {
+			BWT[i] = S[SA[i]-1]
+		}
+	}
+	return
+}
+
+// 問い合わせ配列を探すためのOcc,Cを作る
+func getOccAndC(BWT []int, base int) (Occ [][]int, C []int) {
+  // Occ[x][y] : 文字xが、BWT中の位置y以下で出現した回数
+  // initialize
+  Occ = make([][]int, base, base)
+  for k:=0; k<base; k++ {
+    Occ[k] = make([]int, len(BWT), len(BWT))
+  }
+  // Occ作成
+  Occ[BWT[0]][0] ++
+  for i:=1; i<len(BWT); i++ {
+    for k:=0; k<base; k++ {
+      Occ[k][i] = Occ[k][i-1]
+    }
+    Occ[BWT[i]][i] ++
+  }
+
+  // C作成
+  C = make([]int, base, base)
+  C[0] = 0
+  for k:=1; k<base; k++ {
+    C[k] = C[k-1] + Occ[k-1][len(BWT)-1]
+  }
+  return
+}
+
+
+func searchBWT(BWT []int, Occ [][]int, C []int, query []int) (lb, ub int) {
+  // 初期値
+  lb = 0
+  ub = len(BWT) -1
+  // ループ
+  for k:=len(query)-1; k>=0; k-- {
+    x := query[k]
+    if lb-1 == -1 {
+      lb = C[x] + 0
+    } else {
+      lb = C[x] + Occ[x][lb-1]
+    }
+    if ub == -1 {
+      ub = C[x] + 0 -1
+    } else {
+      ub = C[x] + Occ[x][ub] -1
+    }
+  }
+  return
+}
+
+// SAとBWTで文字列探索するやつ
+func search(S []int, query []int) (pos []int) {
+  fmt.Println("(s)", S, "(q)", query)
+  SA := suffix_array_IS(S)
+  BWT := getBWT(SA, S)
+  Occ, C := getOccAndC(BWT, 5)
+  lb, ub := searchBWT(BWT, Occ, C, query)
+  size := ub-lb + 1
+  pos = make([]int, size, size)
+  for i:=0; i<size; i++ {
+    pos[i] = SA[lb+i]
+  }
+  return
+}
+
 
 // 線形時間SA構築アルゴリズム
 func suffix_array_IS(S []int) (SA []int) {
@@ -372,6 +452,7 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	}
 	if reccursion > 0 {
 		fmt.Println("再帰呼び出しをします")
+		fmt.Println(tLMS)
 		// 再帰したい 新しい文字列つくる
 		// 文字列の長さ
 		length := 0 // LMSの長さ収録文字列の長さ
@@ -393,9 +474,11 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 		}
 		newS[j] = 0 //末尾に0($)を付加
 		newSA := suffix_array_IS(newS)
-		// 元の順位を復元 newSAを走査して、順番につめる
-		for i := 1; i < len(newSA); i++ {
+		fmt.Println(newS, newSA)
+		// 元の順位を復元 newSAを右から(大きいsuffixから)走査して、順番につめる
+		for i := len(newSA) - 1; i >= 0; i-- {
 			x := Ss[newSA[i]]
+			fmt.Println(x)
 			SA2[b2[S[x]]] = x
 			b2[S[x]]--
 		}
@@ -413,7 +496,9 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	}
 	return
 }
-func dispSA(SA []int, rl []int) {
+
+// 等号不等号のテーブルを持ったバケットを表示する 使っていない
+func dispBucket(SA []int, rl []int) {
 	fmt.Print(SA[0])
 	for i := 1; i < len(SA); i++ {
 		if len(rl) > 0 && rl[i] == 1 {
@@ -427,24 +512,35 @@ func dispSA(SA []int, rl []int) {
 	}
 	fmt.Print("\n")
 }
+
+// suffix arrayが正しく構築されたかを確認するための、SA表示ツール
+func dispSA(S []int, SA []int) {
+  fmt.Println("(**SA**)")
+  for i:=0; i<len(SA); i++ {
+    fmt.Println("(",i,":",SA[i],")",S[SA[i]:])
+  }
+}
+
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	//S := []int{a, t, a, t, c, g, t, a, t, c, g, a, a, t, a, g, c, t, t, t, c, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	fmt.Println(a, c, g, t, n)
 	//S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
+	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	//S := []int{2,2,3,1,0}
 	//S := []int{a, t, a, a, t, c, a, t, c, a, t, c, g, t, a, a, t, a, a, n}
 	//SA := make([]int, len(S), len(S))
 	//ISA := make([]int, len(SA), len(SA))
 
-	N := 100000
-	S := make([]int, N, N)
+	//N := 100000
+	//S := make([]int, N, N)
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < N-1; i++ {
-		S[i] = rand.Intn(4) + 1 // 配列を作る
-	}
-	S[N-1] = 0 // 終端文字
+	//for i := 0; i < N-1; i++ {
+	//	S[i] = rand.Intn(4) + 1 // 配列を作る
+	//}
+	//S[N-1] = 0 // 終端文字
+	//S := []int{2,1,1,2,1,1,2,1,1,2,1,1,0}
 
 	fmt.Println("(input)")
 	//insertionSort(A, 0, N-1)
@@ -457,15 +553,27 @@ func main() {
 	//for i := 0; i < len(S); i++ {
 	//	fmt.Println(suffix_comp(S, i, i+1))
 	//}
-	// SA := suffix_array_LS(S)
-	//fmt.Println(SA)
+	SA := suffix_array_LS(S)
+	fmt.Println(SA)
 	// suffix array 構築
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
+  //test_SAIS()
+}
+
+func test_SAIS() {
+	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
+	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	start := time.Now()
 	SA := suffix_array_IS(S)
+  dispSA(S, SA)
 	end := time.Now()
-	fmt.Println("SA", len(SA))
+	fmt.Println("SA", SA)
 	fmt.Println(end.Sub(start).Nanoseconds())
+	//BWT := getBWT(SA, S)
+  //Occ, C:=getOccAndC(BWT, 5)
+  query := []int{a,a,t}
+  //lb, ub := searchBWT(BWT, Occ, C, query)
+  fmt.Println("(search)", search(S, query))
 }
