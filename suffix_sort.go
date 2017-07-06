@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+  "math"
 	"time"
 )
 
@@ -136,6 +137,8 @@ func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	}
 }
 
+
+// 課題2 Larsson-SadakaneアルゴリズムによるSuffixArray構築
 func suffix_array_LS(S []int) []int {
 	SA, ISA, count := _rad_sort(S)
 
@@ -281,7 +284,7 @@ func getOccAndC(BWT []int, base int) (Occ [][]int, C []int) {
   return
 }
 
-
+// BWTを使って文字列探索をする
 func searchBWT(BWT []int, Occ [][]int, C []int, query []int) (lb, ub int) {
   // 初期値
   lb = 0
@@ -334,6 +337,7 @@ func suffix_array_IS(S []int) (SA []int) {
 	// バケットbは、バケットの境界の位置を保存した配列
 	b := countArray(S, max+1)
 	// (2) ソート済み配列を用意
+	//定理 Suffix Array上で先頭文字xについて、x[Ltype], x[Stype]の順になる
 	SA = LMSsorted(S, t, b)
 	// (3-1) 左からinduce
 	induceL(S, SA, b, t)
@@ -342,38 +346,7 @@ func suffix_array_IS(S []int) (SA []int) {
 	return
 }
 
-func suffix_array_IS_old(S []int) (SA []int) {
-	N := len(S)
-
-	// バケットを作る
-	b := countArray(S, 5)
-	// LMSprefixのソート
-	//SAp := make([]int, N, N)
-	t := typeLS(S)
-
-	// LMSsuffixがソート済みと仮定して、induce
-	// それぞれの文字の個数を引き出す
-
-	// Ltypeを詰めていく
-	//定理 Suffix Array上で先頭文字xについて、x[Ltype], x[Stype]の順になる
-	for i := 0; i < N; i++ {
-		if SA[i] != -1 && t[i-1] == 1 {
-			fmt.Println("found")
-			SA[b[i]] = i
-			b[i]++
-		}
-	}
-	// Stypeを詰めていく
-	for i := N - 1; i > 0; i-- {
-		if SA[i] != -1 && t[i-1] == 0 {
-			// iの順序通りに、i-1を入れる
-		}
-	}
-	//
-	SA = S
-	return
-}
-
+// Induceするために、LMSについて順序が決定しているバケットを返す
 func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	SA := make([]int, len(S), len(S))
 	SA2 = make([]int, len(S), len(S))
@@ -452,7 +425,7 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 	}
 	if reccursion > 0 {
 		fmt.Println("再帰呼び出しをします")
-		fmt.Println(tLMS)
+		//fmt.Println(tLMS)
 		// 再帰したい 新しい文字列つくる
 		// 文字列の長さ
 		length := 0 // LMSの長さ収録文字列の長さ
@@ -474,11 +447,11 @@ func LMSsorted(S []int, t []int, B []int) (SA2 []int) {
 		}
 		newS[j] = 0 //末尾に0($)を付加
 		newSA := suffix_array_IS(newS)
-		fmt.Println(newS, newSA)
+		//fmt.Println(newS, newSA)
 		// 元の順位を復元 newSAを右から(大きいsuffixから)走査して、順番につめる
 		for i := len(newSA) - 1; i >= 0; i-- {
 			x := Ss[newSA[i]]
-			fmt.Println(x)
+			//fmt.Println(x)
 			SA2[b2[S[x]]] = x
 			b2[S[x]]--
 		}
@@ -523,7 +496,7 @@ func dispSA(S []int, SA []int) {
 
 func main() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
-	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
+	//S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	//S := []int{a, t, a, t, c, g, t, a, t, c, g, a, a, t, a, g, c, t, t, t, c, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	fmt.Println(a, c, g, t, n)
 	//S := []int{t, a, a, t, a, a, t, a, a, t, c, n}
@@ -553,16 +526,78 @@ func main() {
 	//for i := 0; i < len(S); i++ {
 	//	fmt.Println(suffix_comp(S, i, i+1))
 	//}
-	SA := suffix_array_LS(S)
-	fmt.Println(SA)
+	//SA := suffix_array_LS(S)
+	//fmt.Println(SA)
 	// suffix array 構築
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
   //test_SAIS()
+  test_BWT()
 }
 
+// 課題3-3 ランダム配列に対してo(n)を確認する
 func test_SAIS() {
+  for k:=1; k<=8; k++ {
+    N := int(math.Pow10(k))
+    fmt.Println("(testing", N, ")")
+    S := make([]int, N, N)
+    rand.Seed(time.Now().UnixNano())
+    for i := 0; i < N-1; i++ {
+      S[i] = rand.Intn(4) + 1 // 配列を作る
+    }
+    S[N-1] = 0 // 終端文字
+
+    start := time.Now()
+    SA := suffix_array_IS(S)
+    end := time.Now()
+    fmt.Println("(finished)", len(SA), "time", end.Sub(start).Nanoseconds())
+  }
+}
+
+// 課題4-2 長さnのランダムな配列に対して、長さkの問い合わせ配列をランダムに生成、問い合わせの平均時間を調べる
+func test_BWT() {
+  for t:=5; t<=7; t++ {
+    // 文字列Sの作成
+    N := int(math.Pow10(t))
+    fmt.Println("(testing", N, ")")
+    S := make([]int, N, N)
+    rand.Seed(time.Now().UnixNano())
+    for i := 0; i < N-1; i++ {
+      S[i] = rand.Intn(4) + 1 // 配列を作る
+    }
+    S[N-1] = 0 // 終端文字
+    // suffix arrayの構築
+    SA := suffix_array_IS(S)
+    BWT := getBWT(SA, S)
+    Occ, C := getOccAndC(BWT, 5)
+
+    // k 問い合わせ文字列の長さ
+    for k:=10; k<=20; k++ {
+      // r0 queryに関する試行回数 同じ長さの違うqueryをr0種類作る
+      for r0:=0; r0<10; r0++ {
+        // 問い合わせ文字列queryの作成
+        query := make([]int, k, k)
+        rand.Seed(time.Now().UnixNano())
+        for i := 0; i < k; i++ {
+          query[i] = rand.Intn(4) + 1 // 配列を作る
+        }
+        fmt.Print(k, ",", query, ",")
+
+        // 何回か試行する 10回やったその平均で時間を算出
+        for r:=0; r<50; r++ {
+          start := time.Now()
+          _, _ = searchBWT(BWT, Occ, C, query)
+          end := time.Now()
+          fmt.Print(",", end.Sub(start).Nanoseconds())
+        }
+        fmt.Print("\n")
+      }
+    }
+  }
+}
+
+func test_SAIS2() {
 	a, c, g, t, n := 1, 2, 3, 4, 0 // nは終端文字
 	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	start := time.Now()
