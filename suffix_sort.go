@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
-  "math"
 	"time"
 )
 
@@ -127,7 +127,7 @@ func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	if l < r-1 {
 		fmt.Println("(called)", l, r, h, SA, ISA)
 		i, j := _partition(SA, ISA, l, r, h)
-    fmt.Println("(part)", i, j)
+		fmt.Println("(part)", i, j)
 		_split_sort(SA, ISA, l, i, 2*h) // 次はSA[l:i)
 		// [i:j) は同じものが並んでる 順位確定してるのでISA更新
 		for x := i; x < j; x++ {
@@ -137,12 +137,11 @@ func _split_sort(SA []int, ISA []int, l int, r int, h int) {
 	}
 }
 
-
 // 課題2 Larsson-SadakaneアルゴリズムによるSuffixArray構築
 func suffix_array_LS(S []int) []int {
 	SA, ISA, count := _rad_sort(S)
 
-  fmt.Println("(S)", S, SA,  count)
+	fmt.Println("(S)", S, SA, count)
 	for i := 0; i < len(ISA); i++ {
 		fmt.Println(ISA[SA[i]], " ")
 	}
@@ -260,67 +259,66 @@ func getBWT(SA []int, S []int) (BWT []int) {
 
 // 問い合わせ配列を探すためのOcc,Cを作る
 func getOccAndC(BWT []int, base int) (Occ [][]int, C []int) {
-  // Occ[x][y] : 文字xが、BWT中の位置y以下で出現した回数
-  // initialize
-  Occ = make([][]int, base, base)
-  for k:=0; k<base; k++ {
-    Occ[k] = make([]int, len(BWT), len(BWT))
-  }
-  // Occ作成
-  Occ[BWT[0]][0] ++
-  for i:=1; i<len(BWT); i++ {
-    for k:=0; k<base; k++ {
-      Occ[k][i] = Occ[k][i-1]
-    }
-    Occ[BWT[i]][i] ++
-  }
+	// Occ[x][y] : 文字xが、BWT中の位置y以下で出現した回数
+	// initialize
+	Occ = make([][]int, base, base)
+	for k := 0; k < base; k++ {
+		Occ[k] = make([]int, len(BWT), len(BWT))
+	}
+	// Occ作成
+	Occ[BWT[0]][0]++
+	for i := 1; i < len(BWT); i++ {
+		for k := 0; k < base; k++ {
+			Occ[k][i] = Occ[k][i-1]
+		}
+		Occ[BWT[i]][i]++
+	}
 
-  // C作成
-  C = make([]int, base, base)
-  C[0] = 0
-  for k:=1; k<base; k++ {
-    C[k] = C[k-1] + Occ[k-1][len(BWT)-1]
-  }
-  return
+	// C作成
+	C = make([]int, base, base)
+	C[0] = 0
+	for k := 1; k < base; k++ {
+		C[k] = C[k-1] + Occ[k-1][len(BWT)-1]
+	}
+	return
 }
 
 // BWTを使って文字列探索をする
 func searchBWT(BWT []int, Occ [][]int, C []int, query []int) (lb, ub int) {
-  // 初期値
-  lb = 0
-  ub = len(BWT) -1
-  // ループ
-  for k:=len(query)-1; k>=0; k-- {
-    x := query[k]
-    if lb-1 == -1 {
-      lb = C[x] + 0
-    } else {
-      lb = C[x] + Occ[x][lb-1]
-    }
-    if ub == -1 {
-      ub = C[x] + 0 -1
-    } else {
-      ub = C[x] + Occ[x][ub] -1
-    }
-  }
-  return
+	// 初期値
+	lb = 0
+	ub = len(BWT) - 1
+	// ループ
+	for k := len(query) - 1; k >= 0; k-- {
+		x := query[k]
+		if lb-1 == -1 {
+			lb = C[x] + 0
+		} else {
+			lb = C[x] + Occ[x][lb-1]
+		}
+		if ub == -1 {
+			ub = C[x] + 0 - 1
+		} else {
+			ub = C[x] + Occ[x][ub] - 1
+		}
+	}
+	return
 }
 
 // SAとBWTで文字列探索するやつ
 func search(S []int, query []int) (pos []int) {
-  fmt.Println("(s)", S, "(q)", query)
-  SA := suffix_array_IS(S)
-  BWT := getBWT(SA, S)
-  Occ, C := getOccAndC(BWT, 5)
-  lb, ub := searchBWT(BWT, Occ, C, query)
-  size := ub-lb + 1
-  pos = make([]int, size, size)
-  for i:=0; i<size; i++ {
-    pos[i] = SA[lb+i]
-  }
-  return
+	fmt.Println("(s)", S, "(q)", query)
+	SA := suffix_array_IS(S)
+	BWT := getBWT(SA, S)
+	Occ, C := getOccAndC(BWT, 5)
+	lb, ub := searchBWT(BWT, Occ, C, query)
+	size := ub - lb + 1
+	pos = make([]int, size, size)
+	for i := 0; i < size; i++ {
+		pos[i] = SA[lb+i]
+	}
+	return
 }
-
 
 // 線形時間SA構築アルゴリズム
 func suffix_array_IS(S []int) (SA []int) {
@@ -488,10 +486,10 @@ func dispBucket(SA []int, rl []int) {
 
 // suffix arrayが正しく構築されたかを確認するための、SA表示ツール
 func dispSA(S []int, SA []int) {
-  fmt.Println("(**SA**)")
-  for i:=0; i<len(SA); i++ {
-    fmt.Println("(",i,":",SA[i],")",S[SA[i]:])
-  }
+	fmt.Println("(**SA**)")
+	for i := 0; i < len(SA); i++ {
+		fmt.Println("(", i, ":", SA[i], ")", S[SA[i]:])
+	}
 }
 
 func main() {
@@ -532,69 +530,69 @@ func main() {
 	// SA := suffix_array_naive(S)
 	// SA := suffix_array_IS(S)
 	//fmt.Println("(result)", SA)
-  //test_SAIS()
-  test_BWT()
+	//test_SAIS()
+	test_BWT()
 }
 
 // 課題3-3 ランダム配列に対してo(n)を確認する
 func test_SAIS() {
-  for k:=1; k<=8; k++ {
-    N := int(math.Pow10(k))
-    fmt.Println("(testing", N, ")")
-    S := make([]int, N, N)
-    rand.Seed(time.Now().UnixNano())
-    for i := 0; i < N-1; i++ {
-      S[i] = rand.Intn(4) + 1 // 配列を作る
-    }
-    S[N-1] = 0 // 終端文字
+	for k := 1; k <= 8; k++ {
+		N := int(math.Pow10(k))
+		fmt.Println("(testing", N, ")")
+		S := make([]int, N, N)
+		rand.Seed(time.Now().UnixNano())
+		for i := 0; i < N-1; i++ {
+			S[i] = rand.Intn(4) + 1 // 配列を作る
+		}
+		S[N-1] = 0 // 終端文字
 
-    start := time.Now()
-    SA := suffix_array_IS(S)
-    end := time.Now()
-    fmt.Println("(finished)", len(SA), "time", end.Sub(start).Nanoseconds())
-  }
+		start := time.Now()
+		SA := suffix_array_IS(S)
+		end := time.Now()
+		fmt.Println("(finished)", len(SA), "time", end.Sub(start).Nanoseconds())
+	}
 }
 
 // 課題4-2 長さnのランダムな配列に対して、長さkの問い合わせ配列をランダムに生成、問い合わせの平均時間を調べる
 func test_BWT() {
-  for t:=5; t<=7; t++ {
-    // 文字列Sの作成
-    N := int(math.Pow10(t))
-    fmt.Println("(testing", N, ")")
-    S := make([]int, N, N)
-    rand.Seed(time.Now().UnixNano())
-    for i := 0; i < N-1; i++ {
-      S[i] = rand.Intn(4) + 1 // 配列を作る
-    }
-    S[N-1] = 0 // 終端文字
-    // suffix arrayの構築
-    SA := suffix_array_IS(S)
-    BWT := getBWT(SA, S)
-    Occ, C := getOccAndC(BWT, 5)
+	for t := 5; t <= 7; t++ {
+		// 文字列Sの作成
+		N := int(math.Pow10(t))
+		fmt.Println("(testing", N, ")")
+		S := make([]int, N, N)
+		rand.Seed(time.Now().UnixNano())
+		for i := 0; i < N-1; i++ {
+			S[i] = rand.Intn(4) + 1 // 配列を作る
+		}
+		S[N-1] = 0 // 終端文字
+		// suffix arrayの構築
+		SA := suffix_array_IS(S)
+		BWT := getBWT(SA, S)
+		Occ, C := getOccAndC(BWT, 5)
 
-    // k 問い合わせ文字列の長さ
-    for k:=10; k<=20; k++ {
-      // r0 queryに関する試行回数 同じ長さの違うqueryをr0種類作る
-      for r0:=0; r0<10; r0++ {
-        // 問い合わせ文字列queryの作成
-        query := make([]int, k, k)
-        rand.Seed(time.Now().UnixNano())
-        for i := 0; i < k; i++ {
-          query[i] = rand.Intn(4) + 1 // 配列を作る
-        }
-        fmt.Print(k, ",", query, ",")
+		// k 問い合わせ文字列の長さ
+		for k := 10; k <= 20; k++ {
+			// r0 queryに関する試行回数 同じ長さの違うqueryをr0種類作る
+			for r0 := 0; r0 < 10; r0++ {
+				// 問い合わせ文字列queryの作成
+				query := make([]int, k, k)
+				rand.Seed(time.Now().UnixNano())
+				for i := 0; i < k; i++ {
+					query[i] = rand.Intn(4) + 1 // 配列を作る
+				}
+				fmt.Print(k, ",", query, ",")
 
-        // 何回か試行する 10回やったその平均で時間を算出
-        for r:=0; r<50; r++ {
-          start := time.Now()
-          _, _ = searchBWT(BWT, Occ, C, query)
-          end := time.Now()
-          fmt.Print(",", end.Sub(start).Nanoseconds())
-        }
-        fmt.Print("\n")
-      }
-    }
-  }
+				// 何回か試行する 10回やったその平均で時間を算出
+				for r := 0; r < 50; r++ {
+					start := time.Now()
+					_, _ = searchBWT(BWT, Occ, C, query)
+					end := time.Now()
+					fmt.Print(",", end.Sub(start).Nanoseconds())
+				}
+				fmt.Print("\n")
+			}
+		}
+	}
 }
 
 func test_SAIS2() {
@@ -602,13 +600,13 @@ func test_SAIS2() {
 	S := []int{a, t, a, a, t, a, c, g, a, t, a, a, t, a, a, n}
 	start := time.Now()
 	SA := suffix_array_IS(S)
-  dispSA(S, SA)
+	dispSA(S, SA)
 	end := time.Now()
 	fmt.Println("SA", SA)
 	fmt.Println(end.Sub(start).Nanoseconds())
 	//BWT := getBWT(SA, S)
-  //Occ, C:=getOccAndC(BWT, 5)
-  query := []int{a,a,t}
-  //lb, ub := searchBWT(BWT, Occ, C, query)
-  fmt.Println("(search)", search(S, query))
+	//Occ, C:=getOccAndC(BWT, 5)
+	query := []int{a, a, t}
+	//lb, ub := searchBWT(BWT, Occ, C, query)
+	fmt.Println("(search)", search(S, query))
 }
